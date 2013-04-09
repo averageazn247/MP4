@@ -48,7 +48,7 @@ public:
 
 	string get_data() { return req_data; }
 	int get_id() { return req_id; }
-void set_data(string _data) {req_data = _data;}
+	void set_data(string _data) {req_data = _data;}
 	void set_id(int id) {req_id = id;}
 	
 };
@@ -199,6 +199,8 @@ void * worker_requests(void * channel)
 	 
 	string quit_string = "";
 	RequestChannel * worker_channel[worker];
+	RequestChannel * reqchan= (RequestChannel *) channel;
+	
 	
 	fd_set my_set;
 	int readfs[worker];
@@ -206,74 +208,100 @@ void * worker_requests(void * channel)
 	int retval;
 	int max=0;
 	struct timeval tv;
-
+	Item request;
 	
+	int chan_counter=0;
 	for(int i =0;i<worker;i++)
 	{	
-	
-		RequestChannel channel_name("control", RequestChannel::CLIENT_SIDE);
+		 string channel_name = reqchan->send_request("newthread");
+		//RequestChannel channel_name("control", RequestChannel::CLIENT_SIDE);
+		
 		RequestChannel* workers_channel = new RequestChannel(channel_name, RequestChannel::CLIENT_SIDE);
 		
-		readfs[i]=worker_channel.read_fd();
-		writefs[i]=worker_channel.write_fd();
+		readfs[i]=workers_channel->read_fd();
+		writefs[i]=workers_channel->write_fd();
 		worker_channel[i]= workers_channel;
 		if(readfs[i] >max)
 			max=readfs[i];
-		
-		
-
-
+		if(buff.size()>0)
+		{		
+			request = buff.remove();
+			string tempr=request.get_data();
+	
+			worker_channel[i]->cwrite(request.get_data());
+			chan_counter++;
+		}
 	}
 	FD_ZERO(&my_set);
 	
 	for(int i =0;i<worker;i++)
 	{	
 		
-		FD_SET(&my_set,readfs[i]);
+		FD_SET(readfs[i],&my_set );
 	
 	}
-	
-	for(int i=0;i<worker;i++)
-	{
-		if(FD_ISSET(readfs[i],&my_set))
-		{
-			Item request;
-			char read_b[255];
-			
-			if(buff.size() > 0)
+	while(1) {
+		retval = select(max+1, &my_set, NULL, NULL, NULL);
+		if(retval>0){
+			for(int i=0;i<worker;i++)
 			{
-				retval = select(max+1, &readfs, &writefs, NULL, &tv);
-				if(retval!=1){
-					 request = buff.remove();
-					 int id = request.get_id();
-					 string tempr=request.get_data();
-					// string reply; 
-					//string reply_to_request = (*worker_channel).send_request(tempr);
-					//request.set_data(reply_to_request);
+				
+				if(FD_ISSET(readfs[i],&my_set))
+				{	
+					chan_counter--;
+					char read_b[255];
+					string channel_reply=worker_channel[i]->cread();
+					//set_data(string _data)
+					Item newreply;
+					
+					newreply.set_data(channel_reply);
+					
+					read(writefs[i],read_b,255);
+					if(read_b=="data John Doe")
+					{
+						 
+						joe_b.deposit(newreply);
+					}
+					if( read_b=="data Jane Smith")
+					{
+						jane_b.deposit(newreply);
+					}
+							 
+					if(read_b=="data Joe Smith") 
+					{
+						john_b.deposit(newreply);
+					}
+					
 					 
-						int cwrite(string tempr);
-						string reply_to_request=(*worker_channel).cread();
+					
+					if(buff.size()>0)	
+					{	
 						
-					 
-					cout<< " ID IS " << id << endl;
-					if(id==1)
-						joe_b.deposit(request);
-					if(id==2)
-						jane_b.deposit(request);
-					if(id==3)
-						john_b.deposit(request);
-
-					int descriptor= select(/*everything*/) 
-				}
-			else{
-				printf("Error calling select.");
-				exit(1);
-				}
+						request = buff.remove();
+						string tempr=request.get_data();
+						worker_channel[i]->cwrite(request.get_data());	
+						chan_counter++;
+					}
+				} 
+				
 			}
+		}	
+		else{
+			printf("Error calling select.");
+			exit(1);
 		}
-    }
-    quit_string = worker_channel->send_request("quit");
-   // usleep(1000000);
+		if(buff.size()==0 && chan_counter==0)
+			break;
+		
+		
+	}
+			
+		
+    for(int i=0;i<worker;i++)
+	quit_string = worker_channel[i]->send_request("quit");
+	
+ 
+    
 
 }
 
@@ -373,10 +401,7 @@ int main(int argc, char * argv[])
 	}
 	else {
 	assert(gettimeofday(&tp_start, 0) == 0); //start
-		int errcode;
-		cout << "Establishing control channel... " << flush;
-		RequestChannel chan("control", RequestChannel::CLIENT_SIDE);
-		cout << "dones." << endl;;
+		int errcode;	
 		while((opt= getopt(argc, argv, "n:b:w:"))!= -1)
 		{
 			switch(opt)
@@ -393,8 +418,10 @@ int main(int argc, char * argv[])
 			}
 		}
 	
-
+		cerr << "Establishing control channel...\n ";
 		
+		RequestChannel *chan = new RequestChannel("control", RequestChannel::CLIENT_SIDE);
+		cerr << "dones.\n";
 		// stat_size = 3 people with data_requests_per_person
 		int stat_size = 3 * datareq;
 
@@ -427,16 +454,13 @@ cout<<" setting bound buff \n";
 			   
 			}
 			*/
-			pthread_create(&workers_thread , NULL, worker_requests, NULL);
+			pthread_create(&workers_thread , NULL, worker_requests, chan);
 			
 			//work
   	usleep(1000000);
-			for(int i = 0; i < worker; i++)
-			{
-				
-				pthread_join(workers[i], NULL);
+			 
+
 			   
-			}
 			 
 			generate_stat_threads();
 	usleep(1000000);
@@ -448,7 +472,7 @@ cout<<" setting bound buff \n";
 			usleep(1000000);
 		
 			 
-		   string quit_string = chan.send_request("quit");
+		   string quit_string = chan->send_request("quit");
 		   
 		 		assert(gettimeofday(&tp_end, 0) == 0); //End latency measurement
 		printf("Time taken for computation : "); 
