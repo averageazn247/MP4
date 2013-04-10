@@ -205,10 +205,12 @@ void * worker_requests(void * channel)
 	fd_set my_set;
 	int readfs[worker];
 	int writefs[worker];
+	int ids[worker];
 	int retval;
 	int max=0;
 	struct timeval tv;
 	Item request;
+	int id;
 	
 	int chan_counter=0;
 	for(int i =0;i<worker;i++)
@@ -219,6 +221,7 @@ void * worker_requests(void * channel)
 		RequestChannel* workers_channel = new RequestChannel(channel_name, RequestChannel::CLIENT_SIDE);
 		
 		readfs[i]=workers_channel->read_fd();
+		//printf(" %s string \n",workers_channel->read_fd());
 		writefs[i]=workers_channel->write_fd();
 		worker_channel[i]= workers_channel;
 		if(readfs[i] >max)
@@ -227,50 +230,45 @@ void * worker_requests(void * channel)
 		{		
 			request = buff.remove();
 			string tempr=request.get_data();
-	
+			id = request.get_id();
 			worker_channel[i]->cwrite(request.get_data());
+			//write(writefs[i],tempr.c_str(),strlen(tempr.c_str()+1));
+			ids[i]=id;
 			chan_counter++;
 		}
 	}
 	FD_ZERO(&my_set);
-	
 	for(int i =0;i<worker;i++)
 	{	
 		
 		FD_SET(readfs[i],&my_set );
 	
 	}
+ 
 	while(1) {
+
 		retval = select(max+1, &my_set, NULL, NULL, NULL);
 		if(retval>0){
 			for(int i=0;i<worker;i++)
 			{
-				
 				if(FD_ISSET(readfs[i],&my_set))
 				{	
 					chan_counter--;
+					char read_b2[255];
 					char read_b[255];
+					read(readfs[i], read_b2, 255);
 					string channel_reply=worker_channel[i]->cread();
+					printf(" channel reply %d \n ", channel_reply);
 					//set_data(string _data)
 					Item newreply;
 					
 					newreply.set_data(channel_reply);
-					
+					//string reply_to_request = (*workers_channel).send_request(channel_reply);
 					read(writefs[i],read_b,255);
-					if(read_b=="data John Doe")
-					{
-						 
-						joe_b.deposit(newreply);
-					}
-					if( read_b=="data Jane Smith")
-					{
-						jane_b.deposit(newreply);
-					}
-							 
-					if(read_b=="data Joe Smith") 
-					{
-						john_b.deposit(newreply);
-					}
+				//  printf("200 string %s 2 \n\n \n", read_b2);
+				
+					// printf("100 string %s 1 \n\n \n", read_b);
+
 					
 					 
 					
@@ -280,8 +278,26 @@ void * worker_requests(void * channel)
 						request = buff.remove();
 						string tempr=request.get_data();
 						worker_channel[i]->cwrite(request.get_data());	
-						chan_counter++;
+						chan_counter++;		
+						id=request.get_id();
+						if(id==3)
+					{
+						 
+						john_b.deposit(request);
 					}
+					if( id==2)
+					{
+					newreply.set_id(2);
+						jane_b.deposit(request);
+					}
+							 
+					if(id==1) 
+					{
+					newreply.set_id(1);
+						joe_b.deposit(request);
+					}
+					}
+
 				} 
 				
 			}
@@ -290,15 +306,17 @@ void * worker_requests(void * channel)
 			printf("Error calling select.");
 			exit(1);
 		}
+
 		if(buff.size()==0 && chan_counter==0)
+			{
+			 usleep(100000);
 			break;
-		
+		}
 		
 	}
-			
-		
-    for(int i=0;i<worker;i++)
-	quit_string = worker_channel[i]->send_request("quit");
+			    for(int i=0;i<worker;i++)
+	quit_string = worker_channel[i]->send_request("quit");	
+
 	
  
     
@@ -308,45 +326,50 @@ void * worker_requests(void * channel)
 
 void *create_statistics(void * nothing)
 {
-	
+	//while(buff.size()>0)
+	{
 	
 //int idx = atoi((stat_item->get_data()).c_str());
-	while(joe_b.size() > 0)
-	{
-		Item item; 
-		item = joe_b.remove();
-		int result =atoi(item.get_data().c_str());
-		//cout<< "result is " << result << endl;
-		if(result-1<100)
+		while(joe_b.size() > 0)
 		{
-			joes_stats[result-1]++;
+			//while 
+			Item item; 
+			item = joe_b.remove();
+			int result =atoi(item.get_data().c_str());
+			cout<< "result is " << result << endl;
+			if(result-1<100)
+			{
+				joes_stats[result-1]++;
+			}
+			 
 		}
-		 
+		cout<< " JANE IS SIZE " << jane_b.size() << endl;
+		while(jane_b.size() > 0)
+		{
+			Item item; 
+			item = jane_b.remove();
+			int result =atoi(item.get_data().c_str());
+			cout<< "result is " << result << endl;
+			if(result-1<100)
+			{
+				janes_stats[result-1]++;
+			}
+			 
+		}	
+		while(john_b.size() > 0)
+		{
+			Item item; 
+			item = john_b.remove();
+			int result =atoi(item.get_data().c_str());
+			cout<< "result is " << result << endl;
+			if(result-1<100)
+			{
+				johns_stats[result-1]++;
+			}
+			 
+		} 
 	}
-	cout<< " JANE IS SIZE " << jane_b.size() << endl;
-	while(jane_b.size() > 0)
-	{
-		Item item; 
-		item = jane_b.remove();
-		int result =atoi(item.get_data().c_str());
-		//cout<< "result is " << result << endl;
-		if(result-1<100)
-		{
-			janes_stats[result-1]++;
-		}
-		 
-	}	while(john_b.size() > 0)
-	{
-		Item item; 
-		item = john_b.remove();
-		int result =atoi(item.get_data().c_str());
-	//	cout<< "result is " << result << endl;
-		if(result-1<100)
-		{
-			johns_stats[result-1]++;
-		}
-		 
-	} 
+
 	pthread_exit(NULL);
 
 }
@@ -386,9 +409,10 @@ void print_stats(string name, int * stat_bucket)
 			total += stat_bucket[i];
 
 	}
+	
     cout << "--------------------------------------------------------------" << endl;
     cout << endl;
-	 
+
 
 }
 
@@ -439,36 +463,22 @@ cout<<" setting bound buff \n";
 
 			create_request();
 		  cout<<" generated requests \n ";
-		//	usleep(10000); 
-
-			// start the worker threads
-			 /*
-			for(int i = 0; i < worker; i++)
-			{
-			cout<< "make workers \n";
-				string channel_name = chan.send_request("newthread");
-				//RequestChannel* workers_channel = new RequestChannel(channel_name, RequestChannel::CLIENT_SIDE);
-
-				pthread_create(&workers[i], NULL, worker_requests, NULL);
  
-			   
-			}
-			*/
 			pthread_create(&workers_thread , NULL, worker_requests, chan);
 			
-			//work
-  	usleep(1000000);
+	
 			 
 
-			   
-			 
-			generate_stat_threads();
-	usleep(1000000);
+			  usleep(10000);  
+			
+		//	generate_stat_threads();
+	//	usleep(1000000);
 			
 			 
-			print_stats("Joe Smith", joes_stats);
-			print_stats("Jane Smith", janes_stats);
-			print_stats("John Doe", johns_stats);
+			//print_stats("Joe Smith", joes_stats);
+			//print_stats("Jane Smith", janes_stats);
+			//print_stats("John Doe", johns_stats); 
+			//cout<< " JANE IS SIZE " << jane_b.size() << endl;
 			usleep(1000000);
 		
 			 
