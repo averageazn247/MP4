@@ -208,8 +208,12 @@ void * worker_requests(void * channel)
 	int max=0;
 	struct timeval tv;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	Item request;
 	int id;
+=======
+
+>>>>>>> parent of 655ee20... working no bonus
 =======
 
 >>>>>>> parent of 655ee20... working no bonus
@@ -220,6 +224,7 @@ void * worker_requests(void * channel)
 		RequestChannel channel_name("control", RequestChannel::CLIENT_SIDE);
 		RequestChannel* workers_channel = new RequestChannel(channel_name, RequestChannel::CLIENT_SIDE);
 		
+<<<<<<< HEAD
 <<<<<<< HEAD
 		readfs[i]=workers_channel->read_fd();
 		//printf(" %s string \n",workers_channel->read_fd());
@@ -243,10 +248,20 @@ void * worker_requests(void * channel)
 		worker_channel[i]= workers_channel;
 		if(readfs[i] >max)
 			max=readfs[i];
+=======
+		readfs[i]=worker_channel.read_fd();
+		writefs[i]=worker_channel.write_fd();
+		worker_channel[i]= workers_channel;
+		if(readfs[i] >max)
+			max=readfs[i];
+>>>>>>> parent of 655ee20... working no bonus
 		
 		
 
 
+<<<<<<< HEAD
+>>>>>>> parent of 655ee20... working no bonus
+=======
 >>>>>>> parent of 655ee20... working no bonus
 	}
 	FD_ZERO(&my_set);
@@ -256,6 +271,7 @@ void * worker_requests(void * channel)
 		FD_SET(&my_set,readfs[i]);
 	
 	}
+<<<<<<< HEAD
 <<<<<<< HEAD
  
 	while(1) {
@@ -294,6 +310,18 @@ void * worker_requests(void * channel)
 			
 			if(buff.size() > 0)
 			{
+=======
+	
+	for(int i=0;i<worker;i++)
+	{
+		if(FD_ISSET(readfs[i],&my_set))
+		{
+			Item request;
+			char read_b[255];
+			
+			if(buff.size() > 0)
+			{
+>>>>>>> parent of 655ee20... working no bonus
 				retval = select(max+1, &readfs, &writefs, NULL, &tv);
 				if(retval!=1){
 					 request = buff.remove();
@@ -302,11 +330,15 @@ void * worker_requests(void * channel)
 					// string reply; 
 					//string reply_to_request = (*worker_channel).send_request(tempr);
 					//request.set_data(reply_to_request);
+<<<<<<< HEAD
+>>>>>>> parent of 655ee20... working no bonus
+=======
 >>>>>>> parent of 655ee20... working no bonus
 					 
 						int cwrite(string tempr);
 						string reply_to_request=(*worker_channel).cread();
 						
+<<<<<<< HEAD
 <<<<<<< HEAD
 						request = buff.remove();
 						string tempr=request.get_data();
@@ -334,6 +366,8 @@ void * worker_requests(void * channel)
 				} 
 				
 =======
+=======
+>>>>>>> parent of 655ee20... working no bonus
 					 
 					cout<< " ID IS " << id << endl;
 					if(id==1)
@@ -349,6 +383,7 @@ void * worker_requests(void * channel)
 				printf("Error calling select.");
 				exit(1);
 				}
+<<<<<<< HEAD
 >>>>>>> parent of 655ee20... working no bonus
 			}
 		}
@@ -368,6 +403,13 @@ void * worker_requests(void * channel)
  
     
 =======
+    }
+    quit_string = worker_channel->send_request("quit");
+   // usleep(1000000);
+>>>>>>> parent of 655ee20... working no bonus
+=======
+			}
+		}
     }
     quit_string = worker_channel->send_request("quit");
    // usleep(1000000);
