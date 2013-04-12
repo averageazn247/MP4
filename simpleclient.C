@@ -48,7 +48,7 @@ public:
 
 	string get_data() { return req_data; }
 	int get_id() { return req_id; }
-	void set_data(string _data) {req_data = _data;}
+void set_data(string _data) {req_data = _data;}
 	void set_id(int id) {req_id = id;}
 	
 };
@@ -199,8 +199,6 @@ void * worker_requests(void * channel)
 	 
 	string quit_string = "";
 	RequestChannel * worker_channel[worker];
-	RequestChannel * reqchan= (RequestChannel *) channel;
-	
 	
 	fd_set my_set;
 	int readfs[worker];
@@ -209,17 +207,20 @@ void * worker_requests(void * channel)
 	int retval;
 	int max=0;
 	struct timeval tv;
+<<<<<<< HEAD
 	Item request;
 	int id;
+=======
+
+>>>>>>> parent of 655ee20... working no bonus
 	
-	int chan_counter=0;
 	for(int i =0;i<worker;i++)
 	{	
-		 string channel_name = reqchan->send_request("newthread");
-		//RequestChannel channel_name("control", RequestChannel::CLIENT_SIDE);
-		
+	
+		RequestChannel channel_name("control", RequestChannel::CLIENT_SIDE);
 		RequestChannel* workers_channel = new RequestChannel(channel_name, RequestChannel::CLIENT_SIDE);
 		
+<<<<<<< HEAD
 		readfs[i]=workers_channel->read_fd();
 		//printf(" %s string \n",workers_channel->read_fd());
 		writefs[i]=workers_channel->write_fd();
@@ -236,14 +237,26 @@ void * worker_requests(void * channel)
 			ids[i]=id;
 			chan_counter++;
 		}
+=======
+		readfs[i]=worker_channel.read_fd();
+		writefs[i]=worker_channel.write_fd();
+		worker_channel[i]= workers_channel;
+		if(readfs[i] >max)
+			max=readfs[i];
+		
+		
+
+
+>>>>>>> parent of 655ee20... working no bonus
 	}
 	FD_ZERO(&my_set);
 	for(int i =0;i<worker;i++)
 	{	
 		
-		FD_SET(readfs[i],&my_set );
+		FD_SET(&my_set,readfs[i]);
 	
 	}
+<<<<<<< HEAD
  
 	while(1) {
 
@@ -270,11 +283,31 @@ void * worker_requests(void * channel)
 					// printf("100 string %s 1 \n\n \n", read_b);
 
 					
+=======
+	
+	for(int i=0;i<worker;i++)
+	{
+		if(FD_ISSET(readfs[i],&my_set))
+		{
+			Item request;
+			char read_b[255];
+			
+			if(buff.size() > 0)
+			{
+				retval = select(max+1, &readfs, &writefs, NULL, &tv);
+				if(retval!=1){
+					 request = buff.remove();
+					 int id = request.get_id();
+					 string tempr=request.get_data();
+					// string reply; 
+					//string reply_to_request = (*worker_channel).send_request(tempr);
+					//request.set_data(reply_to_request);
+>>>>>>> parent of 655ee20... working no bonus
 					 
-					
-					if(buff.size()>0)	
-					{	
+						int cwrite(string tempr);
+						string reply_to_request=(*worker_channel).cread();
 						
+<<<<<<< HEAD
 						request = buff.remove();
 						string tempr=request.get_data();
 						worker_channel[i]->cwrite(request.get_data());	
@@ -300,12 +333,26 @@ void * worker_requests(void * channel)
 
 				} 
 				
+=======
+					 
+					cout<< " ID IS " << id << endl;
+					if(id==1)
+						joe_b.deposit(request);
+					if(id==2)
+						jane_b.deposit(request);
+					if(id==3)
+						john_b.deposit(request);
+
+					int descriptor= select(/*everything*/) 
+				}
+			else{
+				printf("Error calling select.");
+				exit(1);
+				}
+>>>>>>> parent of 655ee20... working no bonus
 			}
-		}	
-		else{
-			printf("Error calling select.");
-			exit(1);
 		}
+<<<<<<< HEAD
 
 		if(buff.size()==0 && chan_counter==0)
 			{
@@ -320,6 +367,11 @@ void * worker_requests(void * channel)
 	
  
     
+=======
+    }
+    quit_string = worker_channel->send_request("quit");
+   // usleep(1000000);
+>>>>>>> parent of 655ee20... working no bonus
 
 }
 
@@ -425,7 +477,10 @@ int main(int argc, char * argv[])
 	}
 	else {
 	assert(gettimeofday(&tp_start, 0) == 0); //start
-		int errcode;	
+		int errcode;
+		cout << "Establishing control channel... " << flush;
+		RequestChannel chan("control", RequestChannel::CLIENT_SIDE);
+		cout << "dones." << endl;;
 		while((opt= getopt(argc, argv, "n:b:w:"))!= -1)
 		{
 			switch(opt)
@@ -442,10 +497,8 @@ int main(int argc, char * argv[])
 			}
 		}
 	
-		cerr << "Establishing control channel...\n ";
+
 		
-		RequestChannel *chan = new RequestChannel("control", RequestChannel::CLIENT_SIDE);
-		cerr << "dones.\n";
 		// stat_size = 3 people with data_requests_per_person
 		int stat_size = 3 * datareq;
 
@@ -464,6 +517,7 @@ cout<<" setting bound buff \n";
 			create_request();
 		  cout<<" generated requests \n ";
  
+<<<<<<< HEAD
 			pthread_create(&workers_thread , NULL, worker_requests, chan);
 			
 	
@@ -473,6 +527,24 @@ cout<<" setting bound buff \n";
 			
 		//	generate_stat_threads();
 	//	usleep(1000000);
+=======
+			   
+			}
+			*/
+			pthread_create(&workers_thread , NULL, worker_requests, NULL);
+			
+			//work
+  	usleep(1000000);
+			for(int i = 0; i < worker; i++)
+			{
+				
+				pthread_join(workers[i], NULL);
+			   
+			}
+			 
+			generate_stat_threads();
+	usleep(1000000);
+>>>>>>> parent of 655ee20... working no bonus
 			
 			 
 			//print_stats("Joe Smith", joes_stats);
@@ -482,7 +554,7 @@ cout<<" setting bound buff \n";
 			usleep(1000000);
 		
 			 
-		   string quit_string = chan->send_request("quit");
+		   string quit_string = chan.send_request("quit");
 		   
 		 		assert(gettimeofday(&tp_end, 0) == 0); //End latency measurement
 		printf("Time taken for computation : "); 
